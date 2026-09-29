@@ -1,7 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:deber1_estado_streams/data/repositories/contador_prefs_repository.dart';
+import 'package:deber1_estado_streams/domain/usecases/decrementar.dart';
+import 'package:deber1_estado_streams/domain/usecases/incrementar.dart';
+import 'package:deber1_estado_streams/domain/usecases/obtener_contador.dart';
+import 'package:deber1_estado_streams/presentation/estado/contador_cubit.dart';
+import 'package:deber1_estado_streams/presentation/pantallas/pantalla_visor.dart';
 
 void main() {
-  runApp(const MyApp());
+  Bloc.observer = ContadorBlocObserver();
+  runApp(
+    BlocProvider(
+      create: (_) {
+        final repository = ContadorPrefsRepository();
+        return ContadorCubit(
+          ObtenerContador(repository),
+          Incrementar(repository),
+          Decrementar(repository),
+        )..cargar();
+      },
+      child: const MyApp(),
+    ),
+  );
+}
+
+class ContadorBlocObserver extends BlocObserver {
+  @override
+  void onChange(BlocBase<dynamic> bloc, Change<dynamic> change) {
+    super.onChange(bloc, change);
+    if (bloc is ContadorCubit) {
+      print('ContadorCubit: ${change.currentState} -> ${change.nextState}');
+    }
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -30,7 +60,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const PantallaVisor(),
     );
   }
 }

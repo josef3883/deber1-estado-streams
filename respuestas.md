@@ -1,31 +1,113 @@
-1. El contador se guardó correctamente en el almacenamiento local, pero la pantalla no se actualizó al regresar porque el widget no volvió a leer el valor. Quedó desactualizado el estado de la UI (la pantalla), mientras que la persistencia en disco sí contenía el valor correcto.
-Tuvieron que ponerse de acuerdo 3 lugares:
-El origen que modifica el dato.
-La memoria
-El widget que recibe la variable
+# RESPUESTAS - Deber 1: estado y streams
 
-2. El boton de atras ya no esta acoplado al Statefulwidget, el widget vive en la capa de estado dependiendo la rama Notifier o Cubit.
+Se conserva la numeración de las ocho respuestas originales. Los títulos resumen
+su tema; no se recibió el enunciado con las preguntas literales. La comprobación
+de comportamiento se hizo con pruebas automatizadas y repositorios de prueba;
+la grabación con un cambio real de conexión sigue pendiente.
 
-3. Este permite ver todas los cambios de estado del bloc o cubit sin necesitar un print por ejemplo.Puede ser bastante util cuando estas probando que funciona bien el codigo bastante rápido y sin tanto esfuerzo.
+## 1. Persistencia y pantalla desactualizada con setState
 
-4. Que los dos primeros esten vacios demuestra el uso de arquitectura limpia, además de que ni la capa de Domain ni la de Data importan paquetes de presentación. El tercero no sale vacío porque la capa de Presentation es la única encargada de organizar la interfaz de usuario.
-Si se cambia Riverpod, solo se tendria que modificar la capa de presentation, la logica ya no.
+Guardar el contador no reconstruye automáticamente el visor. En esta versión,
+el visor lee el valor inicial, lo envía al control por `valorInicial` y espera
+el resultado de `Navigator.push<int>`. El botón Volver devuelve el nuevo valor
+con `Navigator.pop<int>(context, _valor)`; entonces el visor llama a setState.
+La flecha de AppBar puede devolver null: en ese caso el visor vuelve a leer el
+repositorio. Se verificaron ambos caminos empezando en 3, sumando, restando y
+regresando con 4; al reconstruir la aplicación, el almacenamiento de prueba
+conservó 4. Esto distingue el dato persistido de la copia que dibuja la UI.
 
-5. La mejor opcion puede ser la de setState, es rápida y no necesita instalar paquetes ni complicar la estructura para usarla. Si tuviera 8 pantallas y 5 datos compartidos, podria usar riverpod, con este todos los datos se pueden manejar en un solo lugar y cualquier pantalla puede leerlos o cambiarlos sin problemas.
+## 2. Qué cambia con Riverpod y Cubit
 
-6. Porque el Future solo toma la informacion especifica en el momento que entra a la pantalla. Si se apaga el Wi-Fi después, la pantalla no tiene forma de enterarse sola porque nadie le avisó del cambio. La app tenía un dato correcto de un momento equivocado. El estado cambió después y la pantalla se quedó por asi decirlo en el pasado.
+Las dos pantallas leen la misma fuente de estado. Riverpod declara
+`contadorProvider` fuera del árbol y coloca un ProviderScope por encima de
+MaterialApp/Navigator. Cubit sitúa BlocProvider en ese mismo nivel. El control
+no recibe el contador ni lo devuelve al visor: sólo se navega sin argumentos
+de datos. Al volver, la pantalla muestra 4 porque observa el estado compartido.
+Los casos de uso llegan desde main y presentación no construye repositorios.
 
-7. Si el usuario entra y sale 50 veces de esa pantalla, la aplicación creará como bastantes tareas "invisibles" en segundo plano que nunca se cierran. Esto provocará que la app consuma memoria innecesaria, se vuelva lenta, descargue la batería del teléfono innecesariamente, etc. 
+## 3. Qué aporta BlocObserver
 
-8. Un Future de dice que es como una foto porque te da la respuesta una sola vez y se termina, como solo capturar un momento especifico, no importa que pase después de esto.
+El observer permite observar las transiciones desde un punto central. La prueba
+y la consola mostraron `ContadorCubit: 3 -> 4`. RegistroContador omite los cambios
+que sólo alteran ocupado/error y registra cuando cambia el valor. El estado
+es un objeto ContadorEstado con campos final; cada emisión crea un objeto nuevo.
 
-Un Stream es como una película porque se queda como abierto cambiando y "actuando" en vivo todo lo que pasa
+## 4. Qué demuestran los git diff (A.5)
 
-2 datos con Future:
-Cuando se revisa el usuario y contraseña en una app solo lo hace al entrar.
-Carcarg un catalogo de compras
+Desde `deber1_estado_streams`, después de crear las ramas corregidas:
 
+```text
+$ git diff correccion/setstate correccion/riverpod -- lib/domain lib/data
+[sin salida; código de salida 0]
+$ git diff correccion/riverpod correccion/cubit -- lib/domain lib/data
+[sin salida; código de salida 0]
+```
 
-2 datos con Stream:
-Rastrear la ubicación en tiempo real en un mapa (como Uber o Google Maps).
-Recibir mensajes en vivo en un chat de WhatsApp.
+Los dos diffs vacíos demuestran que cambiar la presentación no modifica el
+núcleo. Las tres implementaciones están en presentation y la selección
+predeterminada de cada rama está en `presentation/seleccion.dart`. Main y los
+casos de uso son idénticos. También se pueden ejecutar desde una sola rama:
+
+```powershell
+flutter run --dart-define=VERSION=setstate
+flutter run --dart-define=VERSION=riverpod
+flutter run --dart-define=VERSION=cubit
+```
+
+El diff por sí solo no prueba la dirección de dependencias: se comprobó además
+que domain y data no importan Flutter ni paquetes externos y que presentation
+no importa shared_preferences ni connectivity_plus. El almacenamiento se
+inyecta en main y el plugin de conexión queda en infrastructure.
+
+## 5. Elección y tabla comparativa (A.6)
+
+Para este contador pequeño, setState resuelve el caso con pocos conceptos.
+Con ocho pantallas y cinco datos compartidos elegiría Riverpod para evitar
+propagar copias y resultados entre rutas. Cubit también es adecuado cuando se
+quieren transiciones explícitas y observación centralizada.
+
+| Aspecto observado | setState | Riverpod | Cubit |
+| --- | --- | --- | --- |
+| Dueño del estado | Cada StatefulWidget | Notifier del provider | ContadorCubit |
+| Lectura en UI | Campo local | ref.watch | BlocBuilder |
+| Acción | Método y setState | ref.read(...notifier) | context.read<ContadorCubit> |
+| Datos entre rutas | Constructor + resultado de pop | No se pasa el contador | No se pasa el contador |
+| Regreso con flecha | Releer si el resultado es null | Observa estado compartido | Observa estado compartido |
+| Evitar pulsaciones durante escritura | Bandera local | Estado ocupado | Estado ocupado |
+| Registro central | No incorporado | No incorporado aquí | BlocObserver, 3 -> 4 |
+| Núcleo | Mismos casos de uso y data | Sin cambios | Sin cambios |
+
+## 6. Por qué Future no cambia solo
+
+En la prueba de la Parte B, Consultar ahora muestra Wi-Fi y una hora HH:mm:ss.
+Se pasa a Stream y el repositorio de prueba emite sinConexion: esa pestaña
+cambia sin pulsar consultar. Al volver a Future todavía se ve Wi-Fi; sólo
+otra consulta lo cambia a Sin conexión. AutomaticKeepAliveClientMixin conserva
+la foto entre pestañas. El Future terminó y no quedó una escucha activa.
+Esta prueba usa eventos simulados; no acredita cambios físicos del Wi-Fi.
+
+## 7. Por qué cancelar la suscripción
+
+Sin cancelación, el origen puede seguir notificando a un Cubit cerrado y
+mantener recursos activos. `close()` espera `await _suscripcion?.cancel()` antes
+de `super.close()`. La prueba contó una escucha aunque iniciar se invocó dos
+veces y una cancelación al cerrar. También se probó cerrar con una consulta
+pendiente: su resultado tardío no emite después del cierre. Otro caso verifica
+que una consulta antigua no sobrescriba un evento más reciente del stream.
+
+## 8. Future como foto y Stream como secuencia
+
+El experimento de las pestañas hace visible la diferencia: Future conserva
+el resultado de una consulta, Stream recibe cambios sucesivos mientras escucha.
+Usaría Future para enviar un formulario o cargar un catálogo una vez; Stream
+para mensajes entrantes de un chat o una ubicación que cambia durante un viaje.
+En esta app se informa del tipo de conexión de red. Wi-Fi no garantiza acceso
+a Internet y el estado otro puede corresponder, por ejemplo, a Ethernet.
+
+## Evidencia y pendiente de entrega
+
+- Parte A: siete pruebas aprobadas (seis de navegación/persistencia y una del observer).
+- Parte B: cuatro pruebas aprobadas (suscripción, consulta tardía, cierre y pestañas).
+- `flutter analyze --no-pub`: sin incidencias en el proyecto completo.
+- Falta `demo.mp4` con un cambio real de conexión. Instrucciones en `GRABAR_DEMO.md`.
+- No se ha subido esta corrección al remoto. Las ramas `version/*` originales se conservan.

@@ -51,18 +51,18 @@ void main() {
     expect(repo.cancelaciones, 1);
     await repo.controlador.close();
   });
-  test('una consulta tardia no pisa un evento mas reciente', () async {
+  test('consulta el estado antes de suscribirse', () async {
     final repo = ConexionPrueba()..pendiente = Completer();
     final cubit = ConexionCubit(
       ConsultarConexion(repo),
       ObservarConexion(repo),
     );
     final inicio = cubit.iniciar();
-    repo.cambiar(EstadoConexion.sinConexion);
-    await Future<void>.delayed(Duration.zero);
+    expect(repo.escuchas, 0);
     repo.pendiente!.complete(EstadoConexion.wifi);
     await inicio;
-    expect(cubit.state, EstadoConexion.sinConexion);
+    expect(cubit.state, EstadoConexion.wifi);
+    expect(repo.escuchas, 1);
     await cubit.close();
     await repo.controlador.close();
   });
@@ -77,7 +77,8 @@ void main() {
     repo.pendiente!.complete(EstadoConexion.wifi);
     await inicio;
     expect(cubit.isClosed, isTrue);
-    expect(repo.cancelaciones, 1);
+    expect(repo.cancelaciones, 0);
+    expect(repo.escuchas, 0);
     await repo.controlador.close();
   });
   testWidgets('Future conserva la foto y Stream cambia sin pulsar consultar', (

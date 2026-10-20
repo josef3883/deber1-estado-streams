@@ -12,7 +12,7 @@ La rúbrica exige un video real; no se generó una grabación ficticia.
    cambiado solo. Reactive Wi-Fi y muestre otra transición.
 7. Vuelva a Con Future: la foto conserva su resultado anterior. Pulse Consultar
    ahora para actualizarla y mostrar una nueva hora.
-8. Guarde la grabación como `demo.mp4` junto a RESPUESTAS.md. No publique la
+8. Guarde la grabación como `demo.mp4` en la raíz, junto a RESPUESTAS.md. No publique la
    entrega como completa hasta incorporar este archivo.
 
 En una PC, Ethernet puede mantener una conexión aunque se apague Wi-Fi.

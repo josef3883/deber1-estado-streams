@@ -1,4 +1,4 @@
-import 'package:deber1_estado_streams/domain/repositories/contador_repository.dart';
+import '../repositories/contador_repository.dart';
 
 class ObtenerContador {
   ObtenerContador(this._repository);

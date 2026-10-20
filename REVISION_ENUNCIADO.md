@@ -44,4 +44,4 @@ las preguntas y evidencias con el enunciado real.
 Las modificaciones se aplicaron en el repositorio local original
 C:\dev\deber1-estado-streams. La carpeta antigua deber1_estado_streams pasó
 a llamarse parte_a_contador y Parte B se movió a la raíz. El ZIP es una copia
-del resultado. El historial anterior queda bajo respaldo/. No se hizo push.
+del resultado. El historial anterior queda bajo respaldo/. 

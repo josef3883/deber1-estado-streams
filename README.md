@@ -9,7 +9,7 @@ RESPUESTAS.md
 GRABAR_DEMO.md
 ```
 
-demo.mp4 lo añadirá el estudiante posteriormente. No se realizó push al remoto.
+demo.mp4 lo añadirá el estudiante posteriormente.
 
 ## Ejecutar
 
